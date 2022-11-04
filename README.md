@@ -1,5 +1,4 @@
 
-
 # PowerFGT
 
 <p align="center">
@@ -54,6 +53,7 @@ With this module (version 0.6.1) you can manage:
 - [Zone](#zone) (Add/Get/Set/Remove and Add/Remove Member)
 
 There is some extra feature
+
 - [Invoke API](#invoke-api)
 - [Filtering](#filtering)
 - [Multi Connection](#multiconnection)
@@ -68,6 +68,7 @@ Add (Experimental) support of [VDOM](#vdom) is available using -vdom parameter f
 
 All resource management functions are available with the Powershell verbs GET, ADD, COPY, SET, REMOVE.  
 For example, you can manage Address with the following commands:
+
 - `Get-FGTFirewallAddress`
 - `Add-FGTFirewallAddress`
 - `Copy-FGTFirewallAddress`
@@ -80,7 +81,9 @@ For example, you can manage Address with the following commands:
 - A Fortinet FortiGate Firewall and HTTPS enable (recommended)
 
 # Instructions
+
 ### Install the module
+
 ```powershell
 # Automated installation (Powershell 5 or later):
     Install-Module PowerFGT
@@ -96,6 +99,7 @@ For example, you can manage Address with the following commands:
 ```
 
 # Examples
+
 ### Connecting to the FortiGate Firewall
 
 The first thing to do is to connect to a FortiGate Firewall with the command `Connect-FGT` :
@@ -106,8 +110,8 @@ The first thing to do is to connect to a FortiGate Firewall with the command `Co
 
 #we get a prompt for credential
 ```
-if you get a warning about `Unable to connect` Look [Issue](#issue)
 
+if you get a warning about `Unable to connect` Look [Issue](#issue)
 
 ### Address
 
@@ -321,7 +325,6 @@ You need to use FortiGate API syntax :
 | schedule | == | always | GET /api/v2/cmdb/firewall/policy/?filter=schedule==always | Only return firewall policy with schedule 'always'
 | schedule | != | always | GET /api/v2/cmdb/firewall/policy/?filter=schedule!=always | Return all firewall policy with schedule other than 'always'
 
-
 and Filter Operators :
 
 |  Operator |  Description
@@ -351,6 +354,7 @@ For  `Invoke-FGTRestMethod` and `Get-XXX` cmdlet like `Get-FGTFirewallAddress`, 
 ...
 
 ```
+
 Actually, support only `equal` and `contains` filter type
 
 ### Address Group
@@ -581,7 +585,6 @@ or delete it `Remove-FGTFirewallVIPGroup`.
     Performing the operation "Remove Firewall VIP Group" on target "MyVIPGroup".
     [Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is "Y"): y
 ```
-
 
 ### Policy
 
@@ -1051,15 +1054,15 @@ You can change System Settings and System Global (settings) using `Set-FGTSystem
 
 It is possible to `monitor` FortiGate
 
-* `Get-FGTMonitorFirewallPolicy` List traffic statistics for firewall policies
-* `Get-FGTMonitorRouterIPv4` List all active IPv4 routing table entries
-* `Get-FGTMonitorLicenseStatus` Get current license & registration status
-* `Get-FGTMonitorSystemConfigBackup` Backup system config
-* `Get-FGTMonitorSystemFirmware` Retrieve a list of firmware images available to use for upgrade on this device
-* `Get-FGTMonitorSystemHAChecksum` List of checksums for members of HA cluster
-* `Get-FGTMonitorSystemHAPeer` Get configuration of peer(s) in HA cluster
-* `Get-FGTMonitorVpnIPsec` Return active IPsec VPNs
-* `Get-FGTMonitorVpnSsl` Retrieve a list of all SSL-VPN sessions and sub-sessions and Return statistics about the SSL-VPN
+- `Get-FGTMonitorFirewallPolicy` List traffic statistics for firewall policies
+- `Get-FGTMonitorRouterIPv4` List all active IPv4 routing table entries
+- `Get-FGTMonitorLicenseStatus` Get current license & registration status
+- `Get-FGTMonitorSystemConfigBackup` Backup system config
+- `Get-FGTMonitorSystemFirmware` Retrieve a list of firmware images available to use for upgrade on this device
+- `Get-FGTMonitorSystemHAChecksum` List of checksums for members of HA cluster
+- `Get-FGTMonitorSystemHAPeer` Get configuration of peer(s) in HA cluster
+- `Get-FGTMonitorVpnIPsec` Return active IPsec VPNs
+- `Get-FGTMonitorVpnSsl` Retrieve a list of all SSL-VPN sessions and sub-sessions and Return statistics about the SSL-VPN
 
 to get API uri, you can use `Invoke-FGTRestMethod api/v2/monitor/?action=schema` for get list of uri for monitor
 
@@ -1068,31 +1071,34 @@ to get API uri, you can use `Invoke-FGTRestMethod api/v2/monitor/?action=schema`
 It is possible to get `log traffic` of FortiGate.
 
 You can get the following type log
-* disk
-* fortianalyzer
-* forticloud
-* memory
+
+- disk
+- fortianalyzer
+- forticloud
+- memory
 
 and subtype
-* forward
-* local
-* multicast
-* sniffer
-* fortiview
-* threat
+
+- forward
+- local
+- multicast
+- sniffer
+- fortiview
+- threat
 
 by default, it is only first 20 rows availables (use -rows parameter )’
 /!\ you can get issue if you ask too many rows on small appliance /!\
 
 can also filter by
-* Source IP (-srcip)
-* Source Interface (-srcintf)
-* Destination IP (-dstip)
-* Destination Interface (-dstintf)
-* Destination Port (-dstport)
-* Action (-action)
-* Policy ID (-policyid)
-* Policy UUID (-poluuid)
+
+- Source IP (-srcip)
+- Source Interface (-srcintf)
+- Destination IP (-dstip)
+- Destination Interface (-dstintf)
+- Destination Port (-dstport)
+- Action (-action)
+- Policy ID (-policyid)
+- Policy UUID (-poluuid)
 
 for Example
 
@@ -1118,7 +1124,9 @@ for Example
     [...]
 
 ```
+
 ### Invoke API
+
 for example to get Fortigate System Global Info
 
 ```powershell
@@ -1162,6 +1170,7 @@ for example to get Fortigate System Global Info
     hostname                                : PowerFGT-FW1
 [...]
 ```
+
 to get API uri, you can use `api/v2/cmdb/?action=schema` uri for get `schema`  
 You can look also `FortiOS - REST API Reference` available on [Fortinet Developer Network (FNDN)](https://fndn.fortinet.net/)
 
@@ -1170,30 +1179,35 @@ You can look also `FortiOS - REST API Reference` available on [Fortinet Develope
 it is possible use VDOM using -vdom parameter on cmdlet command (by default it is root vdom)
 
 For get FGT Firewall Address of vdomX
+
 ```powershell
     Get-FGTFirewallAddress -vdom vdomX
 [...]
 ```
 
 For get FGT Firewall Address of vdomX and root
+
 ```powershell
     Get-FGTFirewallAddress -vdom vdomX,root
 [...]
 ```
 
 For get FGT Firewall Address of all vdom
+
 ```powershell
     Get-FGTFirewallAddress -vdom *
 [...]
 ```
 
 You can configure the "default" vdom when connect using
+
 ```powershell
     Connect-FGT 192.0.2.1 -vdom vdomX
 [...]
 ```
 
 You can also change default vdom using
+
 ```powershell
     Set-FGTConnection -vdom vdomY
 [...]
@@ -1202,6 +1216,7 @@ You can also change default vdom using
 ### Proxy
 
 There is also cmdlet for Proxy
+
 - Proxy Address (Add/Copy/Get/Remove-FGTFirewallProxyAddress)
 - Proxy Address Group (Add/Copy/Get/Set/Remove-FGTFirewallProxyAddressGroup)
 - Proxy Policy (Add/Get/Remove-FGTFirewallProxyPolicy)
@@ -1333,15 +1348,16 @@ You can use also `Connect-FGT -httpOnly` for connect using HTTP (NOT RECOMMENDED
 
 Contribution and feature requests are more than welcome. Please use the following methods:
 
-  * For bugs and [issues](https://github.com/FortiPower/PowerFGT/issues), please use the [issues](https://github.com/FortiPower/PowerFGT/issues) register with details of the problem.
-  * For Feature Requests, please use the [issues](https://github.com/FortiPower/PowerFGT/issues) register with details of what's required.
-  * For code contribution (bug fixes, or feature request), please request fork PowerFGT, create a feature/fix branch, add tests if needed then submit a pull request.
+- For bugs and [issues](https://github.com/FortiPower/PowerFGT/issues), please use the [issues](https://github.com/FortiPower/PowerFGT/issues) register with details of the problem.
+- For Feature Requests, please use the [issues](https://github.com/FortiPower/PowerFGT/issues) register with details of what's required.
+- For code contribution (bug fixes, or feature request), please request fork PowerFGT, create a feature/fix branch, add tests if needed then submit a pull request.
 
 # Contact
 
 Currently, [@alagoutte](#author) started this project and will keep maintaining it. Reach out to me via [Twitter](#author), Email (see top of file) or the [issues](https://github.com/FortiPower/PowerFGT/issues) Page here on GitHub. If you want to contribute, also get in touch with me.
 
 # List of available command
+
 ```powershell
 Add-FGTFirewallAddress
 Add-FGTFirewallAddressGroup
@@ -1455,6 +1471,7 @@ Show-FGTException
 # Author
 
 **Alexis La Goutte**
+
 - <https://github.com/alagoutte>
 - <https://twitter.com/alagoutte>
 
