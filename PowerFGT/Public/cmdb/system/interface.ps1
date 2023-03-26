@@ -19,10 +19,26 @@ function Add-FGTSystemInterface {
         This creates a new interface using only mandatory parameters.
 
         .EXAMPLE
+        Add-FGTSystemInterface -name PowerFGT_lacp -atype lacp -member port9, port10
+
+        This creates a new interface LACP (aggregate) with port9 and port 10
+
+        .EXAMPLE
+        Add-FGTSystemInterface -name PowerFGT_static -atype static -member port9, port10
+
+        This creates a new interface Redundant (static) with port9 and port 10
+
+        .EXAMPLE
         Add-FGTSystemInterface -name PowerFGT -alias Alias_PowerFGT -role lan -vlan_id 10 -interface port10 -allowaccess https,ping,ssh -status up -device_identification $true -mode static -ip 192.0.2.1 -netmask 255.255.255.0 -vdom_interface root
 
         Create an interface named PowerFGT with alias Alias_PowerFGT, role lan with vlan id 10 on interface port10. Administrative access by https and ssh, ping authorize on ip 192.0.2.1 and state connected.
+
+        .EXAMPLE
+        Add-FGTSystemInterface -name PowerFGT_loopback -loopback -mode static -ip 192.0.2.1 -netmask 255.255.255.0 -allowaccess ping
+
+        This creates a new interface loopback with IP 192.0.2.1(/24) and allow access to ping
     #>
+
     Param(
         [Parameter (Mandatory = $true, Position = 1)]
         [ValidateLength(1, 15)]
@@ -34,8 +50,15 @@ function Add-FGTSystemInterface {
         [string]$role = "lan",
         [Parameter (Mandatory = $true, ParameterSetName = "vlan")]
         [int]$vlan_id,
-        [Parameter (Mandatory = $true)]
+        [Parameter (Mandatory = $true, ParameterSetName = "vlan")]
         [string]$interface,
+        [Parameter (Mandatory = $true, ParameterSetName = "aggregate")]
+        [string[]]$member,
+        [Parameter (Mandatory = $true, ParameterSetName = "aggregate")]
+        [ValidateSet('lacp', 'static')]
+        [string]$atype,
+        [Parameter (Mandatory = $true, ParameterSetName = "loopback")]
+        [switch]$loopback,
         [Parameter (Mandatory = $false)]
         [ValidateSet('https', 'ping', 'fgfm', 'capwap', 'ssh', 'snmp', 'ftm', 'radius-acct', 'ftm', IgnoreCase = $false)]
         [string[]]$allowaccess,
@@ -76,14 +99,28 @@ function Add-FGTSystemInterface {
         $_interface | add-member -name "name" -membertype NoteProperty -Value $name
 
         switch ( $PSCmdlet.ParameterSetName ) {
+            "loopback" {
+                $_interface | add-member -name "type" -membertype NoteProperty -Value "loopback"
+            }
             "vlan" {
                 $_interface | add-member -name "type" -membertype NoteProperty -Value "vlan"
+                $_interface | add-member -name "interface" -membertype NoteProperty -Value $interface
+            }
+            "aggregate" {
+                #following atype (aggregate type), you select lacp (aggregate) or static (redundant)
+                switch ( $atype ) {
+                    "lacp" {
+                        $_interface | add-member -name "type" -membertype NoteProperty -Value "aggregate"
+                    }
+                    "static" {
+                        $_interface | add-member -name "type" -membertype NoteProperty -Value "redundant"
+                    }
+                }
             }
             default { }
         }
 
         $_interface | add-member -name "role" -membertype NoteProperty -Value $role
-        $_interface | add-member -name "interface" -membertype NoteProperty -Value $interface
         $_interface | add-member -name "mode" -membertype NoteProperty -Value $mode
         $_interface | add-member -name "vdom" -membertype NoteProperty -Value $vdom_interface
 
@@ -93,6 +130,14 @@ function Add-FGTSystemInterface {
 
         if ( $PsBoundParameters.ContainsKey('vlan_id') ) {
             $_interface | add-member -name "vlanid" -membertype NoteProperty -Value $vlan_id
+        }
+
+        if ( $PsBoundParameters.ContainsKey('member') ) {
+            $members = @()
+            foreach ($m in $member) {
+                $members += @{"interface-name" = $m }
+            }
+            $_interface | add-member -name "member" -membertype NoteProperty -Value $members
         }
 
         if ( $PsBoundParameters.ContainsKey('allowaccess') ) {

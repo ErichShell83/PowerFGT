@@ -18,7 +18,7 @@ Describe  "Connect to a FortiGate (using HTTP)" {
         $DefaultFGTConnection.version | Should -Not -BeNullOrEmpty
         $DefaultFGTConnection.serial | Should -Not -BeNullOrEmpty
     }
-    It "Disconnect to a FortiGate (using HTTP) and check global variable" -Skip:( -not $httpOnly ){
+    It "Disconnect to a FortiGate (using HTTP) and check global variable" -Skip:( -not $httpOnly ) {
         Disconnect-FGT -confirm:$false
         $DefaultFGTConnection | Should -Be $null
     }
@@ -223,14 +223,38 @@ Describe "Connect to a FortiGate (using multi connection)" {
         It "Use Multi connection for call Get User RADIUS" {
             { Get-FGTUserRADIUS -connection $fgt } | Should -Not -Throw
         }
+        It "Use Multi connection for call Get User SAML (> 6.2.0)" -skip:($fgt_version -lt "6.2.0") {
+            { Get-FGTUserSAML -connection $fgt } | Should -Not -Throw
+        }
+        It "Use Multi connection for call Get User SAML (< 6.2.0)" -skip:($fgt_version -ge "6.2.0") {
+            { Get-FGTUserSAML -connection $fgt } | Should -Throw "You can't get User SAML with FortiOS < 6.2.0"
+        }
         It "Use Multi connection for call Get VPN IPsec Phase 1 Interface" {
             { Get-FGTVpnIpsecPhase1Interface -connection $fgt } | Should -Not -Throw
         }
         It "Use Multi connection for call Get VPN IPsec Phase 2 Interface" {
             { Get-FGTVpnIpsecPhase2Interface -connection $fgt } | Should -Not -Throw
         }
+        It "Use Multi connection for call Get VPN SSL Client" -skip:($fgt_version -lt "7.0.0") {
+            { Get-FGTVpnSSLClient -connection $fgt } | Should -Not -Throw
+        }
+        It "Use Multi connection for call Get VPN SSL Client" -skip:($fgt_version -ge "7.0.0") {
+            { Get-FGTVpnSSLClient -connection $fgt } | Should -Throw "VPN SSL Client is not available before FortiOS 7.0.x"
+        }
+        It "Use Multi connection for call Get VPN SSL Portal" {
+            { Get-FGTVpnSSLPortal -connection $fgt } | Should -Not -Throw
+        }
+        It "Use Multi connection for call Get VPN SSL Settings" {
+            { Get-FGTVpnSSLSettings -connection $fgt } | Should -Not -Throw
+        }
+        It "Use Multi connection for call Get Webfilter Profile" {
+            { Get-FGTWebfilterProfile -connection $fgt } | Should -Not -Throw
+        }
         It "Use Multi connection for call Get Monitor Firewall Policy" {
             { Get-FGTMonitorFirewallPolicy -connection $fgt } | Should -Not -Throw
+        }
+        It "Use Multi connection for call Get Monitor Firewall Session" {
+            { Get-FGTMonitorFirewallSession -connection $fgt } | Should -Not -Throw
         }
         It "Use Multi connection for call Get Monitor Router IPv4" {
             { Get-FGTMonitorRouterIPv4 -connection $fgt } | Should -Not -Throw
@@ -256,11 +280,20 @@ Describe "Connect to a FortiGate (using multi connection)" {
         It "Use Multi connection for call Get Monitor License Status" {
             { Get-FGTMonitorLicenseStatus -connection $fgt } | Should -Not -Throw
         }
+        It "Use Multi connection for call Get Monitor Network ARP (> 6.4.0)" -skip:($fgt_version -lt "6.4.0") {
+            { Get-FGTMonitorNetworkARP -connection $fgt } | Should -Not -Throw
+        }
+        It "Use Multi connection for call Get Monitor Network ARP (< 6.4.0)" -skip:($fgt_version -ge "6.4.0") {
+            { Get-FGTMonitorNetworkARP -connection $fgt } | Should -Throw "Monitor Network ARP is not available before Forti OS 6.4"
+        }
         It "Use Multi connection for call Get Monitor VPN SSL" {
             { Get-FGTMonitorVpnSsl -connection $fgt } | Should -Not -Throw
         }
         It "Use Multi connection for call Get Monitor VPN IPsec" {
             { Get-FGTMonitorVpnIPsec -connection $fgt } | Should -Not -Throw
+        }
+        It "Use Multi connection for call Get Monitor Webfilter Cateogries" {
+            { Get-FGTMonitorWebfilterCategories -connection $fgt } | Should -Not -Throw
         }
     }
 

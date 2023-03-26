@@ -20,12 +20,27 @@ function Get-FGTLogTraffic {
         .EXAMPLE
         Get-FGTLogTraffic -type memory -subtype forward -rows 10000
 
-        Get Log Traffic from memory on subtype forward and 10 000 rows
+        Get Log Traffic from memory on subtype forward with 10 000 rows
 
         .EXAMPLE
-        Get-FGTLogTraffic -type disk -subtype forward -rows 10000 -srcip
+        Get-FGTLogTraffic -type disk -subtype forward -rows 10000 -srcip 192.0.2.1
 
-        Get Log Traffic from memory on subtype forward and 10 000 rows
+        Get Log Traffic from disk on subtype forward with 10 000 rows with Source IP 192.0.0.1
+
+        .EXAMPLE
+        Get-FGTLogTraffic -type fortianalyzer -subtype forward -rows 10000 -since 7d
+
+        Get Log Traffic from fortianalyzer on subtype forward with 10 000 rows since 7 day
+
+        .EXAMPLE
+        Get-FGTLogTraffic -type disk -subtype forward -rows 10000 -extra reverse_lookup
+
+        Get Log Traffic from disk on subtype forward with 10 000 rows with reverse lookup
+
+        .EXAMPLE
+        Get-FGTLogTraffic -type disk -subtype forward -rows 10000 -wait 5000
+
+        Get Log Traffic from disk on subtype forward with 10 000 rows and wait 5000 Milliseconds between each request
 
     #>
 
@@ -64,7 +79,15 @@ function Get-FGTLogTraffic {
         [int]$policyid,
         [Parameter (Mandatory = $false)]
         [Parameter (ParameterSetName = "poluuid")]
-        [guid]$poluuid,
+        [string]$poluuid,
+        [Parameter (Mandatory = $false)]
+        [ValidateSet('country_id', 'reverse_lookup', IgnoreCase = $false)]
+        [string[]]$extra,
+        [Parameter (Mandatory = $false)]
+        [ValidateSet('1h', '6h', '1d', '7d', '30d', IgnoreCase = $false)]
+        [string]$since,
+        [Parameter (Mandatory = $false)]
+        [int]$wait = 1000,
         [Parameter (Mandatory = $false)]
         [Parameter (ParameterSetName = "filter")]
         [string]$filter_attribute,
@@ -140,6 +163,37 @@ function Get-FGTLogTraffic {
             default { }
         }
 
+        if ( $PsBoundParameters.ContainsKey('extra') -or $PsBoundParameters.ContainsKey('since')) {
+            $filter = ""
+
+            #by default, there is last 1hour of log, need to specifiy _metadata.timestamp (Unix)
+            if ($since) {
+                $currentime = [DateTimeOffset]::Now.ToUnixTimeMilliSeconds()
+                Switch ($since) {
+                    '1h' { $mtimestamp = $currentime - 3600000 }
+                    '6h' { $mtimestamp = $currentime - 21600000 }
+                    '1d' { $mtimestamp = $currentime - 86400000 }
+                    '7d' { $mtimestamp = $currentime - 604800000 }
+                    '30d' { $mtimestamp = $currentime - 2592000000 }
+                }
+                $filter += "_metadata.timestamp>=$mtimestamp"
+            }
+
+            #Add list of extra parameter (reverse_lookup, country_id...)
+            foreach ($e in $extra) {
+                $filter += "&extra=$e"
+            }
+
+            #if there is other filder add to &filter
+            if ( $filter_value -and $filter_attribute ) {
+                $filter_value += "&filter=" + $filter
+            }
+            else {
+                $invokeParams.add( 'filter', $filter )
+            }
+
+        }
+
         #if filter value and filter_attribute, add filter (by default filter_type is equal)
         if ( $filter_value -and $filter_attribute ) {
             $invokeParams.add( 'filter_value', $filter_value )
@@ -147,9 +201,40 @@ function Get-FGTLogTraffic {
             $invokeParams.add( 'filter_type', $filter_type )
         }
 
-        $uri = "api/v2/log/${type}/traffic/${subtype}?rows=${rows}"
-        $response = Invoke-FGTRestMethod -uri $uri -method 'GET' -connection $connection @invokeParams
-        $response.results
+        if ($type -eq "fortianalyzer") {
+            $r = $rows
+            if ($rows -gt 1024) {
+                $rows = 1024
+            }
+            $uri = "api/v2/log/${type}/traffic/${subtype}?rows=${rows}"
+            #Add Serial Number Info
+            $uri += "&serial_no=$($connection.serial)"
+            $results = @()
+            $i = 0
+            $response = Invoke-FGTRestMethod -uri $uri -method 'GET' -connection $connection @invokeParams
+            $uri += "&session_id=$($response.session_id)"
+            while ($i -lt $r) {
+                $uri2 = $uri + "&start=$($i)"
+                $response = Invoke-FGTRestMethod -uri $uri2 -method 'GET' -connection $connection @invokeParams
+                Write-Debug "start=$($i), total_lines=$($response.total_lines) completed=$($response.completed) "
+                while ($response.completed -ne "100") {
+                    #Wait X Milliseconds to result
+                    Start-Sleep -Milliseconds $wait
+                    $response = Invoke-FGTRestMethod -uri $uri2 -method 'GET' -connection $connection @invokeParams
+                    Write-Debug "start=$($i), total_lines=$($response.total_lines) completed=$($response.completed) "
+                }
+
+                $i += 1024
+                $results += $response.results
+            }
+            $results
+
+        }
+        else {
+            $uri = "api/v2/log/${type}/traffic/${subtype}?rows=${rows}"
+            $response = Invoke-FGTRestMethod -uri $uri -method 'GET' -connection $connection @invokeParams
+            $response.results
+        }
     }
 
     End {

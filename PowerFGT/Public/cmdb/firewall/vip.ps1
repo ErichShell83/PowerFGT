@@ -33,6 +33,11 @@ function Add-FGTFirewallVip {
 
         Add VIP objet type static-nat (One to One) with name myVIP3 with external IP 192.0.2.1 and mapped IP 198.51.100.1 with Port Forward and UDP Port 5000 mapped to port 6000
 
+        .EXAMPLE
+        $data = @{ "nat-source-vip" = "enable" ; "color" = "23"}
+        PS C> Add-FGTFirewallVip -name myVIP5-data -type static-nat -extip 192.0.2.1 -mappedip 198.51.100.1 -data $data
+
+        Change dns-mapping-ttl and color settings using -data parameter
     #>
 
     Param(
@@ -53,12 +58,16 @@ function Add-FGTFirewallVip {
         [Parameter (Mandatory = $false)]
         [switch]$portforward,
         [Parameter (Mandatory = $false)]
-        [ValidateSet("tcp", "udp", "sctp", "icmp",IgnoreCase=$false)]
+        [ValidateSet("tcp", "udp", "sctp", "icmp", IgnoreCase = $false)]
         [string]$protocol = "tcp",
         [Parameter (Mandatory = $false)]
         [string]$extport,
         [Parameter (Mandatory = $false)]
         [string]$mappedport,
+        [Parameter (Mandatory = $false)]
+        [boolean]$arpreply,
+        [Parameter (Mandatory = $false)]
+        [hashtable]$data,
         [Parameter (Mandatory = $false)]
         [switch]$skip,
         [Parameter(Mandatory = $false)]
@@ -120,6 +129,21 @@ function Add-FGTFirewallVip {
             }
             else {
                 $vip | add-member -name "mappedport" -membertype NoteProperty -Value $extport
+            }
+        }
+
+        if ( $PsBoundParameters.ContainsKey('arpreply') ) {
+            if ( $arpreply ) {
+                $vip | add-member -name "arp-reply" -membertype NoteProperty -Value "enable"
+            }
+            else {
+                $vip | add-member -name "arp-reply" -membertype NoteProperty -Value "disable"
+            }
+        }
+
+        if ( $PsBoundParameters.ContainsKey('data') ) {
+            $data.GetEnumerator() | ForEach-Object {
+                $vip | Add-member -name $_.key -membertype NoteProperty -Value $_.value
             }
         }
 
@@ -283,10 +307,10 @@ function Remove-FGTFirewallVip {
             $invokeParams.add( 'vdom', $vdom )
         }
 
-        $uri = "api/v2/cmdb/firewall/vip/$($vip.name)"
+        $uri = "api/v2/cmdb/firewall/vip"
 
         if ($PSCmdlet.ShouldProcess($vip.name, 'Remove Firewall VIP')) {
-            $null = Invoke-FGTRestMethod -method "DELETE" -uri $uri -connection $connection @invokeParams
+            $null = Invoke-FGTRestMethod -method "DELETE" -uri $uri -uri_escape $vip.name -connection $connection @invokeParams
         }
     }
 

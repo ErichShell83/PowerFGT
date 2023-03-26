@@ -42,6 +42,12 @@ function Add-FGTFirewallAddress {
         Add-FGTFirewallAddress -Name FGT-Range -startip 192.0.2.1 -endip 192.0.2.100
 
         Add Address object type iprange with name FGT-Range with start IP 192.0.2.1 and end ip 192.0.2.100
+
+        .EXAMPLE
+        Add-FGTFirewallAddress -Name FGT-Country-FR -country FR
+
+        Add Address object type geo (country) with name FGT-Country-FR and value FR (France)
+
     #>
 
     Param(
@@ -57,6 +63,8 @@ function Add-FGTFirewallAddress {
         [ipaddress]$startip,
         [Parameter (Mandatory = $false, ParameterSetName = "iprange")]
         [ipaddress]$endip,
+        [Parameter (Mandatory = $false, ParameterSetName = "geography")]
+        [string]$country,
         [Parameter (Mandatory = $false)]
         [string]$interface,
         [Parameter (Mandatory = $false)]
@@ -106,6 +114,10 @@ function Add-FGTFirewallAddress {
             "fqdn" {
                 $address | add-member -name "type" -membertype NoteProperty -Value "fqdn"
                 $address | add-member -name "fqdn" -membertype NoteProperty -Value $fqdn
+            }
+            "geography" {
+                $address | add-member -name "type" -membertype NoteProperty -Value "geography"
+                $address | add-member -name "country" -membertype NoteProperty -Value $country
             }
             default { }
         }
@@ -182,9 +194,9 @@ function Copy-FGTFirewallAddress {
             $invokeParams.add( 'vdom', $vdom )
         }
 
-        $uri = "api/v2/cmdb/firewall/address/$($address.name)/?action=clone&nkey=$($name)"
-
-        Invoke-FGTRestMethod -method "POST" -uri $uri -connection $connection @invokeParams | out-Null
+        $uri = "api/v2/cmdb/firewall/address"
+        $extra = "action=clone&nkey=$($name)"
+        Invoke-FGTRestMethod -method "POST" -uri $uri -uri_escape $address.name -extra $extra -connection $connection @invokeParams | out-Null
 
         Get-FGTFirewallAddress -connection $connection @invokeParams -name $name
     }
@@ -354,6 +366,12 @@ function Set-FGTFirewallAddress {
 
         Change MyFGTAddress to set a new endip (iprange) 192.0.2.200
 
+        .EXAMPLE
+        $MyFGTAddress = Get-FGTFirewallAddress -name MyFGTAddress
+        PS C:\>$MyFGTAddress | Set-FGTFirewallAddress -country FR
+
+        Change MyFGTAddress to set a new country (geo) FR (France)
+
     #>
 
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'medium', DefaultParameterSetName = 'default')]
@@ -373,6 +391,8 @@ function Set-FGTFirewallAddress {
         [ipaddress]$startip,
         [Parameter (Mandatory = $false, ParameterSetName = "iprange")]
         [ipaddress]$endip,
+        [Parameter (Mandatory = $false, ParameterSetName = "geography")]
+        [string]$country,
         [Parameter (Mandatory = $false)]
         [string]$interface,
         [Parameter (Mandatory = $false)]
@@ -396,7 +416,8 @@ function Set-FGTFirewallAddress {
             $invokeParams.add( 'vdom', $vdom )
         }
 
-        $uri = "api/v2/cmdb/firewall/address/$($address.name)"
+        $uri = "api/v2/cmdb/firewall/address"
+        $old_name = $address.name
 
         $_address = new-Object -TypeName PSObject
 
@@ -446,6 +467,11 @@ function Set-FGTFirewallAddress {
                     $_address | add-member -name "fqdn" -membertype NoteProperty -Value $fqdn
                 }
             }
+            "geography" {
+                if ( $PsBoundParameters.ContainsKey('country') ) {
+                    $_address | add-member -name "country" -membertype NoteProperty -Value $country
+                }
+            }
             default { }
         }
 
@@ -474,7 +500,7 @@ function Set-FGTFirewallAddress {
         }
 
         if ($PSCmdlet.ShouldProcess($address.name, 'Configure Firewall Address')) {
-            Invoke-FGTRestMethod -method "PUT" -body $_address -uri $uri -connection $connection @invokeParams | out-Null
+            Invoke-FGTRestMethod -method "PUT" -body $_address -uri $uri -uri_escape $old_name -connection $connection @invokeParams | out-Null
 
             Get-FGTFirewallAddress -connection $connection @invokeParams -name $address.name
         }
@@ -528,10 +554,10 @@ function Remove-FGTFirewallAddress {
             $invokeParams.add( 'vdom', $vdom )
         }
 
-        $uri = "api/v2/cmdb/firewall/address/$($address.name)"
+        $uri = "api/v2/cmdb/firewall/address"
 
         if ($PSCmdlet.ShouldProcess($address.name, 'Remove Firewall Address')) {
-            $null = Invoke-FGTRestMethod -method "DELETE" -uri $uri -connection $connection @invokeParams
+            $null = Invoke-FGTRestMethod -method "DELETE" -uri $uri -uri_escape $address.name -connection $connection @invokeParams
         }
     }
 

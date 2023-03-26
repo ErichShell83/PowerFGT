@@ -12,8 +12,25 @@ Add an interface
 
 ## SYNTAX
 
+### vlan
 ```
 Add-FGTSystemInterface [-name] <String> [-alias <String>] [-role <String>] -vlan_id <Int32> -interface <String>
+ [-allowaccess <String[]>] [-status <String>] [-device_identification <String>] [-mode <String>] [-ip <String>]
+ [-netmask <String>] [-vdom_interface <String>] [-vdom <String[]>] [-connection <PSObject>]
+ [<CommonParameters>]
+```
+
+### aggregate
+```
+Add-FGTSystemInterface [-name] <String> [-alias <String>] [-role <String>] -member <String[]> -atype <String>
+ [-allowaccess <String[]>] [-status <String>] [-device_identification <String>] [-mode <String>] [-ip <String>]
+ [-netmask <String>] [-vdom_interface <String>] [-vdom <String[]>] [-connection <PSObject>]
+ [<CommonParameters>]
+```
+
+### loopback
+```
+Add-FGTSystemInterface [-name] <String> [-alias <String>] [-role <String>] [-loopback]
  [-allowaccess <String[]>] [-status <String>] [-device_identification <String>] [-mode <String>] [-ip <String>]
  [-netmask <String>] [-vdom_interface <String>] [-vdom <String[]>] [-connection <PSObject>]
  [<CommonParameters>]
@@ -34,11 +51,32 @@ This creates a new interface using only mandatory parameters.
 
 ### EXAMPLE 2
 ```
+Add-FGTSystemInterface -name PowerFGT_lacp -atype lacp -member port9, port10
+```
+
+This creates a new interface LACP (aggregate) with port9 and port 10
+
+### EXAMPLE 3
+```
+Add-FGTSystemInterface -name PowerFGT_static -atype static -member port9, port10
+```
+
+This creates a new interface Redundant (static) with port9 and port 10
+
+### EXAMPLE 4
+```
 Add-FGTSystemInterface -name PowerFGT -alias Alias_PowerFGT -role lan -vlan_id 10 -interface port10 -allowaccess https,ping,ssh -status up -device_identification $true -mode static -ip 192.0.2.1 -netmask 255.255.255.0 -vdom_interface root
 ```
 
 Create an interface named PowerFGT with alias Alias_PowerFGT, role lan with vlan id 10 on interface port10.
 Administrative access by https and ssh, ping authorize on ip 192.0.2.1 and state connected.
+
+### EXAMPLE 5
+```
+Add-FGTSystemInterface -name PowerFGT_loopback -loopback -mode static -ip 192.0.2.1 -netmask 255.255.255.0 -allowaccess ping
+```
+
+This creates a new interface loopback with IP 192.0.2.1(/24) and allow access to ping
 
 ## PARAMETERS
 
@@ -92,7 +130,7 @@ Accept wildcard characters: False
 
 ```yaml
 Type: Int32
-Parameter Sets: (All)
+Parameter Sets: vlan
 Aliases:
 
 Required: True
@@ -107,12 +145,57 @@ Accept wildcard characters: False
 
 ```yaml
 Type: String
-Parameter Sets: (All)
+Parameter Sets: vlan
 Aliases:
 
 Required: True
 Position: Named
 Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -member
+{{ Fill member Description }}
+
+```yaml
+Type: String[]
+Parameter Sets: aggregate
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -atype
+{{ Fill atype Description }}
+
+```yaml
+Type: String
+Parameter Sets: aggregate
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -loopback
+{{ Fill loopback Description }}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: loopback
+Aliases:
+
+Required: True
+Position: Named
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```

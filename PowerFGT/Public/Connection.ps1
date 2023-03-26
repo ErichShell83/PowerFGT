@@ -72,6 +72,25 @@ function Connect-FGT {
       Connect-FGT -Server 192.0.2.1 -new_password $mysecpassword
 
       Connect to a FortiGate with IP 192.0.2.1 and change the password
+
+      .EXAMPLE
+      $mysecpassword = ConvertTo-SecureString mypassword -AsPlainText -Force
+      Connect-FGT -Server 192.0.2.1 -Username admin -Password $mysecpassword -token_code XXXXX
+
+      Connect to a FortiGate with IP 192.0.2.1 using Username, Password and (Forti)token code XXXXXX
+
+     .EXAMPLE
+      Connect-FGT -Server 192.0.2.1 -token_prompt
+
+      Connect to a FortiGate with IP 192.0.2.1 and it will ask to get (Forti)Token code when connect
+
+     .EXAMPLE
+      $lic = Get-Content -Raw license.lic
+      $Credential = New-Object System.Management.Automation.PSCredential("admin", (new-object System.Security.SecureString))
+      $mynewpassword = ConvertTo-SecureString mypassword -AsPlainText -Force
+      Connect-FGT -Server 192.0.2.1 -credentials $credential -New_Password $mynewsecpassword -license $lic -SkipCertificateCheck
+
+      Connect to a FortiGate with IP 192.0.2.1 and upload the new license and change the password
   #>
     [CmdletBinding(DefaultParameterSetName = 'default')]
     [OutputType([System.Collections.Hashtable])]
@@ -101,6 +120,12 @@ function Connect-FGT {
         [int]$port,
         [Parameter(Mandatory = $false)]
         [int]$Timeout = 0,
+        [Parameter(Mandatory = $false)]
+        [string]$token_code,
+        [Parameter(Mandatory = $false)]
+        [switch]$token_prompt,
+        [Parameter(Mandatory = $false)]
+        [string]$license,
         [Parameter(Mandatory = $false)]
         [string[]]$vdom,
         [Parameter(Mandatory = $false)]
@@ -181,6 +206,23 @@ function Connect-FGT {
                 throw "Unable to connect to FortiGate"
             }
 
+            #check if need token...
+            if ( $iwrResponse.Content[0] -eq "3") {
+                if ( $PsBoundParameters.ContainsKey('token_code') -or $PsBoundParameters.ContainsKey('token_prompt') ) {
+                    if ( $PsBoundParameters.ContainsKey('token_prompt')) {
+                        $token_code = Read-Host "Token"
+                    }
+                    $postParams += @{token_code = $token_code }
+                    try {
+                        $iwrResponse = Invoke-WebRequest $uri -Method POST -Body $postParams -WebSession $FGT @invokeParams
+                    }
+                    catch {
+                        Show-FGTException $_
+                        throw "Unable to connect to FortiGate with a token"
+                    }
+                }
+            }
+
             #first byte return is a status code
             switch ($iwrResponse.Content[0]) {
                 '0' {
@@ -193,7 +235,7 @@ function Connect-FGT {
                     throw "Admin is now locked out (Please retry in 60 seconds)"
                 }
                 '3' {
-                    throw "Two-factor Authentication is needed (not yet supported with PowerFGT)"
+                    throw "Two-factor Authentication is needed (use -token_code XXXXXX or -token_prompt)"
                 }
                 '4' {
                     if (-not $PsBoundParameters.ContainsKey('new_password')) {
@@ -206,7 +248,7 @@ function Connect-FGT {
             #Search crsf cookie and to X-CSRFTOKEN
             $cookies = $FGT.Cookies.GetCookies($uri)
             foreach ($cookie in $cookies) {
-                if ($cookie.name -eq "ccsrftoken") {
+                if ($cookie.name -like "ccsrftoken*") {
                     $cookie_csrf = $cookie.value
                 }
             }
@@ -250,7 +292,31 @@ function Connect-FGT {
                 }
 
                 #Reconnect...
-                Connect-FGT -server $server -port $port -httpOnly:$httpOnly -vdom $vdom -Username $Credentials.username -Password $new_password -DefaultConnection $DefaultConnection
+                Connect-FGT -server $server -port $port -httpOnly:$httpOnly -vdom $vdom -Username $Credentials.username -Password $new_password -license $license -SkipCertificateCheck:$SkipCertificateCheck -DefaultConnection $DefaultConnection
+                return
+            }
+
+            if ($iwrResponse.Content -match '/system/vm/license') {
+                if (-not $PsBoundParameters.ContainsKey('license')) {
+                    #throw if you don't have specify license
+                    throw "Need to install a license (use -license parameter)"
+                }
+                $uri = $url + "api/v2/monitor/system/vmlicense/upload"
+
+                #Convert the license to base64 and POST to vmlicense/upload
+                $Bytes = [System.Text.Encoding]::UTF8.GetBytes($license)
+                $license_b64 = [Convert]::ToBase64String($Bytes)
+                $postParams = @{
+                    file_content = $license_b64
+                }
+                try {
+                    Invoke-RestMethod $uri -Method "POST" -Header $headers -WebSession $FGT -Body ($postParams | ConvertTo-Json) @invokeParams | Out-Null
+                }
+                catch {
+                    Show-FGTException $_
+                    throw "Unable to upload license"
+                }
+                Write-Warning "Fortigate restart (installing license...)"
                 return
             }
         }

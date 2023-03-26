@@ -52,6 +52,16 @@ function Invoke-FGTRestMethod {
       Invoke-FGTRestMethod -method "get" -uri "api/v2/cmdb/firewall/address" -filter_attribute name -filter_type contains -filter_value FGT
 
       Invoke-RestMethod with FGT connection for get api/v2/cmdb/firewall/address uri with filter attribute equal name and filter value contains FGT
+
+      .EXAMPLE
+      Invoke-FGTRestMethod -method "Ppost" -uri "api/v2/cmdb/firewall/address" -uri_escape "My /% Address" -body $body
+
+      Invoke-RestMethod with FGT connection for post api/v2/cmdb/firewall/address uri with uri escape (replace / or % by HTML code)
+
+      .EXAMPLE
+      Invoke-FGTRestMethod -method "Ppost" -uri "api/v2/cmdb/firewall/address" -extra "action=move"
+
+      Invoke-RestMethod with FGT connection for post api/v2/cmdb/firewall/address uri with extra uri (add ?action=move on this example)
     #>
 
     [CmdletBinding(DefaultParameterSetName = "default")]
@@ -80,6 +90,10 @@ function Invoke-FGTRestMethod {
         [Parameter (Mandatory = $false)]
         [Parameter (ParameterSetName = "filter_build")]
         [psobject]$filter_value,
+        [Parameter (Mandatory = $false)]
+        [string]$uri_escape,
+        [Parameter (Mandatory = $false)]
+        [string]$extra,
         [Parameter(Mandatory = $false)]
         [psobject]$connection
     )
@@ -110,6 +124,10 @@ function Invoke-FGTRestMethod {
             $fullurl = "https://${Server}:${port}/${uri}"
         }
 
+        if ( $PsBoundParameters.ContainsKey('uri_escape') ) {
+            $fullurl += "/" + (($uri_escape -replace ("%", "%25")) -replace ("/", "%2f"))
+        }
+
         #Extra parameter...
         if ($fullurl -NotMatch "\?") {
             $fullurl += "?"
@@ -130,14 +148,14 @@ function Invoke-FGTRestMethod {
         #filter
         switch ( $filter_type ) {
             "equal" {
-                $filter_value = "==" + $filter_value
+                $filter_value = "==" + (($filter_value -replace ("%", "%25")) -replace ("/", "%2f"))
             }
             "contains" {
-                $filter_value = "=@" + $filter_value
+                $filter_value = "=@" + (($filter_value -replace ("%", "%25")) -replace ("/", "%2f"))
             }
             #by default set to equal..
             default {
-                $filter_value = "==" + $filter_value
+                $filter_value = "==" + (($filter_value -replace ("%", "%25")) -replace ("/", "%2f"))
             }
         }
 
@@ -147,6 +165,10 @@ function Invoke-FGTRestMethod {
 
         if ( $filter ) {
             $fullurl += "&filter=$filter"
+        }
+
+        if ( $PsBoundParameters.ContainsKey('extra') ) {
+            $fullurl += $extra
         }
 
         #Display (Full)url when verbose (no longer available with PS 7.2.x...)
